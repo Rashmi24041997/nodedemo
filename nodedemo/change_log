@@ -1,0 +1,121 @@
+C:\xampp\htdocs\mobilcomm-fb\application\config\config.php
+//********************************************************
+
+//$config['base_url'] = "https://mobilcomm.fourbrick.com/";
+// $config['base_url'] = "https://mobilcomm.fourbrick.com/";
+ $config['base_url'] = "https://localhost/mobilcomm-fb/";
+ 
+ application\config\database.php
+ //*********************************************************
+ 
+ @ -77,8 +77,8 @@ $db['default'] = array(
+	'dsn'	=> '',
+	'hostname' => 'localhost',
+	'username' => 'root',
+//	'password' => 'openGH78f%#weh',  //***************** change *******************//
+//	'database' => 'mepprojectv1',
+	'password' => '',
+	'database' => 'mepproject1',
+	'dbdriver' => 'mysqli',
+	'dbprefix' => '',
+	'pconnect' => FALSE,
+
+C:\xampp\htdocs\mobilcomm-fb\application\config\routes.php
+//********************************************************
+
+$route['dashboardAtt'] = 'user/att';
+$route['dashboardEme'] = 'user/eme';
+$route['company'] = 'user';
+
+
+C:\xampp\htdocs\mobilcomm-fb\application\controllers\EmailScheduler.php
+//**********************************************************************
+
+<?php if(!defined('BASEPATH')) exit('No direct script access allowed');
+require APPPATH . '/libraries/BaseController.php';
+class EmailScheduler extends BaseController
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->model('siteInfo_model');
+        $this->isLoggedIn();   
+    }
+
+    public function index()
+    {
+		 $this->global['pageTitle'] = 'MobileComm : EmailScheduler';
+         $this->global['market_list'] =  $this->siteInfo_model->get_market_list();  
+		 $this->global['templates'] =$this->siteInfo_model->get_templates();
+		 $this->loadViews("emailscheduler/email-scheduler", $this->global, NULL , NULL);
+    }   
+     public function send_mail()
+    {
+		if(isset($_POST)){
+			$marketNames = $this->input->post('market-names');
+			$templeteId = $this->input->post('templete-id');
+			$email_template = $this->siteInfo_model->get_template($templeteId);
+			if($marketNames){
+				$get_market = $this->siteInfo_model->get_market($marketNames);
+				foreach($get_market as $gm) {
+					$text = $gm['accessdetail'];
+					$regexp = '/([a-z0-9_\.\-])+\@(([a-z0-9\-])+\.)+([a-z0-9]{2,4})+/i';
+					preg_match_all($regexp, $text, $matches);
+					//preg_match_all("/[\._a-zA-Z0-9-]+@[\._a-zA-Z0-9-]+/i", $text, $matches);
+					$match_arr = $matches[0];
+					if(count($match_arr)!= 0 ){
+							
+								foreach($match_arr as $email){
+									$message = $email_template['message']; 
+									$data['message'] = $message;
+									$CI = setProtocol();  										
+									$CI->email->from(EMAIL_FROM, FROM_NAME);
+									$sub = 'Reguarding Survey Schedule';
+									$CI->email->subject($sub);
+									$CI->email->message($this->load->view('email/market_template', $data, TRUE));
+									$CI->email->to($email);
+									$status = $CI->email->send();
+									
+								}
+							
+						}
+				}
+			}			
+        }
+      
+    } 
+
+    public function change_tamplate_partial(){
+		$templeteId= $this->input->post('value');
+		if(!empty($templeteId)){
+		$email_template = $this->siteInfo_model->get_template($templeteId);
+		
+		$data['message'] = $email_template['message'];
+		$data['template_id'] =$email_template['id'];
+	
+		
+		$template = 'Subject : Survey schedule message Format. </br> <p>';
+		$template .= $this->load->view('email/market_template', $data, TRUE);
+		$template .= '</p>';
+		echo $template;
+		}
+    }
+	/* public function manage_tamplate(){
+		 $this->load->helper('form');
+		$templeteId= $this->input->post('value');
+		if(!empty($templeteId)){
+		$email_template = $this->siteInfo_model->get_template($templeteId);
+		$data['message'] = $email_template['message'];
+		$data['template_id'] = $email_template['id'];
+		$template = 'Subject : Survey schedule message Format. </br> <p>';
+		$template .= $this->load->view('email/manage-template', $data, TRUE);
+		$template .= '</p>';
+		echo $template;
+		}
+    } 
+	*/
+	
+    
+}
+
+?>
